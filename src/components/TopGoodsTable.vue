@@ -20,7 +20,7 @@ const collumns = [
   },
   {
     label: "Прибыль",
-    field: "totalProfit",
+    field: "profit",
   },
   {
     label: "Кол-во",
@@ -31,51 +31,40 @@ const collumns = [
 const rows = ref([]);
 
 const createTable = (data) => {
-  let allProducts = [];
+  let result = [];
 
-  for (let month in data) {
-    if (month !== "Продажи" && month !== "CC") {
-      allProducts = allProducts.concat(data[month]);
-    }
-  }
+  data["Продажи"].forEach((sale) => {
+    let productName = sale["Наименование"];
+    let discountPrice = sale["Цена со скидкой"];
 
-  let uniqueItemNames = new Set();
-
-  allProducts.forEach((item) => {
-    uniqueItemNames.add(item["Наименование"]);
-  });
-
-  let itemCounts = {};
-
-  let topProducts = [];
-
-  uniqueItemNames.forEach((itemName) => {
-    let count = 0;
-    let totalProfit = 0;
-
-    allProducts.forEach((item) => {
-      if (item["Наименование"] && item["Наименование"] === itemName) {
-        count++;
-        const unitsProfit = item["Цена"] - item["Цена со скидкой"];
-        const itemProfit = unitsProfit * count;
-        totalProfit += itemProfit;
+    let costPrice = 0;
+    data["CC"].forEach((ccItem) => {
+      if (ccItem["Наименование"] === productName) {
+        costPrice = ccItem["Себестоимость"];
       }
     });
 
-    itemCounts[itemName] = count;
-
-    topProducts.push({
-      name: itemName,
-      count: count,
-      totalProfit: totalProfit,
-    });
+    if (costPrice !== 0) {
+      let existingProductIndex = result.findIndex(
+        (item) => item.name === productName
+      );
+      if (existingProductIndex !== -1) {
+        result[existingProductIndex].count++;
+        result[existingProductIndex].profit += discountPrice - costPrice;
+      } else {
+        result.push({
+          name: productName,
+          count: 1,
+          discount_price: discountPrice,
+          price: costPrice,
+          profit: discountPrice - costPrice,
+        });
+      }
+    }
   });
 
-  topProducts.sort((a, b) => b.totalProfit - a.totalProfit);
-
-  topProducts = topProducts.slice(0, 100);
-
-  rows.value = topProducts;
+  result.sort((a, b) => b.profit - a.profit);
+  rows.value = result.slice(0, 100);
 };
 
 defineExpose({

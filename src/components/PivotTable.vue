@@ -33,37 +33,50 @@ const collumns = [
   },
   {
     label: "Средний % скидки",
-    field: "avgDiscountPercentage",
+    field: "avgDiscount",
   },
 ];
 
 const rows = reactive([]);
 
 const createTable = (data) => {
-  for (const month in data) {
-    const salesData = data[month];
+  let summary = {};
 
-    let totalRevenue = 0;
-    let totalProfit = 0;
-    let totalDiscountPercent = 0;
-    let salesCount = 0;
+  for (let month in data) {
+    if (month !== "Продажи" && month !== "CC") {
+      let salesCount = 0;
+      let totalRevenue = 0;
+      let totalProfit = 0;
+      let totalDiscount = 0;
+      let count = 0;
 
-    salesData.forEach((item) => {
-      totalRevenue += item["Цена со скидкой"] || 0;
-      totalProfit += item["Цена"] - item["Цена со скидкой"] || 0;
-      totalDiscountPercent += item["Скидка"] || 0;
-      salesCount++;
-    });
+      data[month].forEach((item) => {
+        salesCount++;
+        totalRevenue += item["Цена со скидкой"] || 0;
+        totalDiscount += item["Скидка"] || 0;
+        count++;
 
-    const avgDiscountPercentage = (totalDiscountPercent / salesCount).toFixed(2);
+        if (data["CC"] && data["CC"].length > 0) {
+          data["CC"].forEach((costItem) => {
+            if (costItem["Наименование"] === item["Наименование"]) {
+              totalProfit +=
+                item["Цена со скидкой"] - costItem["Себестоимость"] || 0;
+            }
+          });
+        }
+      });
 
-    rows.push({
-      month,
-      salesCount: salesCount,
-      totalRevenue: formatNumber(totalRevenue),
-      totalProfit: formatNumber(totalProfit),
-      avgDiscountPercentage,
-    });
+      if (count > 0) {
+        let avgDiscount = totalDiscount / count;
+        rows.push({
+          month,
+          salesCount,
+          totalRevenue: formatNumber(totalRevenue),
+          totalProfit: formatNumber(totalProfit),
+          avgDiscount: avgDiscount.toFixed(2),
+        });
+      }
+    }
   }
 };
 
